@@ -1,0 +1,7 @@
+"infiltrator" {
+   	"base"	"base"
+	"title"	"Infiltrator"
+	"category"	"pvp"
+	"menusystem"	"1"
+	"workshopid"	"3559698756"
+}
