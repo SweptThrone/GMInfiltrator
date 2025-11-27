@@ -4,7 +4,7 @@ As seen as STAGE 3 of STAG Servers during September 2025.
 
 ## Summary
 Infiltrator is a hardcore asymmetric stealth gamemode that pits a single sneaky  
-infiltrator against a large team of facility guard.  
+infiltrator against a large team of facility guards.  
 The solo infiltrator must enter the sprawling facility, complete six objectives  
 around the interior, then extract at any of the three locations.  
 The team of heavily-armed guards must hunt down the infiltrator and take him out  
@@ -46,4 +46,5 @@ cause them to freeze to death.  Unforeseen issues will follow without it install
 I try to support everything I make forever, so if you found an issue, feel free  
 to open an issue or submit a fix or something.  I'm not completely sure how  
 public GitHub repositories are supposed to work.  
+
 I'm not really interested in adding new features.  It's a completed gamemode.  
