@@ -36,9 +36,9 @@ hook.Add( "PostEntityTakeDamage", "Infil.TeamKrillaDamage", function( vic, dmgIn
         local atk = dmgInfo:GetAttacker()
         if atk:IsPlayer() and atk ~= vic and vic:Team() == atk:Team() and GetRoundState() == ROUND.ACTIVE then
             KRILL_TRACKER_DMG[ atk:AccountID() ] = KRILL_TRACKER_DMG[ atk:AccountID() ] or 0
-            KRILL_TRACKER_DMG[ atk:AccountID() ] = KRILL_TRACKER_DMG[ atk:AccountID() ] dmgInfo:GetDamage()
+            KRILL_TRACKER_DMG[ atk:AccountID() ] = KRILL_TRACKER_DMG[ atk:AccountID() ] + dmgInfo:GetDamage()
             atk:InfilMsg( "You hit a teammate!  Watch your fire!" )
-            if atk:CalculateKrillaPenalty() and KRILL_TRACKER_DMG[ atk:AccountID() ] >= KRILL_TRACKER_DMG[ atk:AccountID() ] + 100 then
+            if atk:CalculateKrillaPenalty() and KRILL_TRACKER_DMG[ atk:AccountID() ] >= KRILL_DMG_THRESHOLDS[ atk:AccountID() ] + 100 then
                 KRILL_DMG_THRESHOLDS[ atk:AccountID() ] = KRILL_TRACKER_DMG[ atk:AccountID() ] - KRILL_TRACKER_DMG[ atk:AccountID() ] % 100
                 net.Start( "Infil.TeamKrilla" )
                     net.WritePlayer( atk )
