@@ -141,6 +141,7 @@ The guards have infinite lives; the infiltrator has only one.]] )
 [[Infiltrator has some fun mechanics to keep things interesting.
 
  • If you are outdoors for too long without a thermal inlay, you will freeze to death.
+ • Bullets are ballistic, meaning they have travel time and drop.
  • Anyone can view the facility's cameras from the security office.
  • The facility cameras can be damaged to be disabled for a few seconds.
  • All objectives have strobe light effect applied to them (except the rocket hatch).]] )
@@ -171,6 +172,8 @@ You and the rest of guards can hear each others' voice chat at all times, as lon
 You cannot, however, see who is speaking, so it would be a good idea to acquaint yourselves with
 the rest of the security force before proceeding.
 You can also use team text chat by ]] .. ( input.LookupBinding( "messagemode2" ) and "hitting " .. input.LookupBinding( "messagemode2" ):upper() or "binding a key to Team Chat" ) .. [[.
+
+You can also ]] .. ( input.LookupBinding( "st_ping_loc" ) and "hit " .. input.LookupBinding( "st_ping_loc" ):upper() or "bind a key to st_ping_loc" ) .. [[ to ping locations to your team.
 
 All guards spawn in the bunks as the class they picked.
 You cannot change your class once the round has begun, so choose wisely.]] )

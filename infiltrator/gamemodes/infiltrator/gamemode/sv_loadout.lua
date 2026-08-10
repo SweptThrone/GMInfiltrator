@@ -62,9 +62,3 @@ net.Receive( "Infil.Loadout", function( _, ply )
         ply.InfilLoadout[ TEAM_INFIL ][ 4 ] = location
     end
 end )
-
-hook.Add( "PlayerFootstep", "Infil.HeavyFootsteps", function( ply )
-    if player_manager.GetPlayerClass( ply ) == "guard_heavy" then
-        ply:EmitSound( "npc/combine_soldier/gear" .. math.random( 1, 6 ) .. ".wav" )
-    end
-end )

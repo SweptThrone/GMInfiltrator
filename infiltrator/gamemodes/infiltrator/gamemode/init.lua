@@ -46,6 +46,8 @@ AddCSLuaFile( "player_class/guard_medic.lua" )
 AddCSLuaFile( "player_class/guard_officer.lua" )
 AddCSLuaFile( "player_class/infil_infil.lua" )
 
+print( "Initializing..." )
+
 util.AddNetworkString( "Infil.Music" )
 
 LAST_INFILTRATOR = NULL
@@ -206,6 +208,7 @@ function RollTeams()
 	NextRoundInfil = table.Random( valid_infiltrators )
 	NextRoundInfil:InfilMsg( "You are the infiltrator!" )
 	LAST_INFILTRATOR = NextRoundInfil
+	print( "Next round infil @ 154", NextRoundInfil )
 
 	NextRoundGuards = {}
 	for k,v in pairs( GetPlayersWhoCanPlay() ) do
@@ -259,6 +262,9 @@ end )
 
 function GM:PlayerDeath( vic )
 	vic.NextSpawnTime = CurTime() + 30
+	if vic:Team() == TEAM_GUARD then
+		vic.NextSpawnTime = math.max( 30, team.NumPlayers( TEAM_GUARD ) * 10 )
+	end
 
 	vic:SetNWInt( "Freezing", 0 )
 	vic:SetNWBool( "HasJammer", false )
@@ -284,6 +290,7 @@ function GM:Think()
 
 	if GetRoundState() == ROUND.NOPLAYERS then
 		if player.GetCount() > 1 and not hasSentLoadout then
+			print( "Proceeding to next due to no players..." )
 			hasSentLoadout = true
 			NextState()
 			nextRoundTimeCached = GetStateTime()
@@ -302,6 +309,7 @@ function GM:Think()
 		end
 	elseif CurTime() >= nextRoundTimeCached then
 		hasSentLoadout = false
+		print( "Proceeding to next due to time expiring..." )
 		NextState()
 		nextRoundTimeCached = GetStateTime()
 
@@ -314,6 +322,7 @@ function GM:Think()
 				v:Spawn()
 			end
 
+			print( "We are now preparing..." )
 			game.CleanUpMap()
 
 			RollTeams()
@@ -322,6 +331,8 @@ function GM:Think()
 			timer.Simple( 1, function()
 				G_MUTE = false
 			end )
+
+			print( "Game is now active" )
 
 			local i = 1
 			for k,v in pairs( NextRoundGuards ) do
@@ -340,6 +351,7 @@ function GM:Think()
 				end
 			end
 			NextRoundInfil.Active = true
+			print( "Next round infil @ 262", NextRoundInfil )
 			player_manager.SetPlayerClass( NextRoundInfil, "infil_infil" )
 			NextRoundInfil:Spawn()
 			NextRoundInfil:UnSpectate()
@@ -403,5 +415,4 @@ function plyMeta:Exfiltrate()
 	self:RemoveAllAmmo()
 	self:SetNWBool( "CamoEnabled", false )
 	GAMEMODE:PlayerSpawnAsSpectator( self )
-
 end

@@ -241,19 +241,22 @@ end )
 
 local alive = true
 local deadTime = 0
+local numGuards = 0
 
 hook.Add( "HUDPaint", "ShowRespawnTimer", function()
 
     if LocalPlayer():Alive() ~= alive then
         if not LocalPlayer():Alive() then
             deadTime = CurTime()
+            numGuards = team.NumPlayers( TEAM_GUARD )
         end
 
         alive = LocalPlayer():Alive()
     end
 
     if deadTime ~= 0 and not LocalPlayer():Alive() then
-        local txt = ( deadTime + 30 ) - CurTime() > 0 and string.format( "%3.1f", math.max( math.Round( ( deadTime + 30 ) - CurTime(), 1 ), 0 ) ) or "GO"
+        local respawnTime = math.max( 30, 10 * numGuards )
+        local txt = ( deadTime + respawnTime ) - CurTime() > 0 and string.format( "%3.1f", math.max( math.Round( ( deadTime + respawnTime ) - CurTime(), 1 ), 0 ) ) or "GO"
 
         surface.SetFont( "InfilHUDFont" )
         surface.SetTextColor( 0, 0, 0, 255 )
