@@ -44,7 +44,7 @@ local cameras = {
     { pos = Vector( 1863.5571289063, 5791.3408203125 , -6526.830078125 ), ang = Angle( 0, 180, 0 ) }
 }
 
-BOREAS_CAMERAS = {}
+BOREAS_CAMERAS = BOREAS_CAMERAS or {}
 
 if SERVER then
     util.AddNetworkString( "boreas_cameras" )
@@ -77,8 +77,11 @@ if SERVER then
 
     local lastCams = {}
 
-    hook.Add( "SetupPlayerVisibility", "AddRTCamera", function( ply, v )
-        if IsValid( v ) then AddOriginToPVS( v:GetPos() - ( v:GetRight() * 15 ) + ( v:GetForward() * 35 ) ) end
+    hook.Add( "SetupPlayerVisibility", "AddRTCamera", function( ply, _ )
+        if IsValid( BOREAS_CAMERAS[ lastCams[ ply ] ] ) then
+            local c = BOREAS_CAMERAS[ lastCams[ ply ] ]
+            AddOriginToPVS( c:GetPos() - ( c:GetRight() * 15 ) + ( c:GetForward() * 35 ) )
+        end
     end )
 
     net.Receive( "boreas_cameras", function( _, ply )
@@ -91,13 +94,11 @@ if SERVER then
 
         if camera == -1 then
             if lastCams[ ply ] then BOREAS_CAMERAS[ lastCams[ ply ] ]:SetNWInt( "Watchers", BOREAS_CAMERAS[ lastCams[ ply ] ]:GetNWInt( "Watchers", 0 ) - 1 ) end
-            ply:SetViewEntity( NULL )
             ply:Freeze( false )
         else
             if lastCams[ ply ] then BOREAS_CAMERAS[ lastCams[ ply ] ]:SetNWInt( "Watchers", BOREAS_CAMERAS[ lastCams[ ply ] ]:GetNWInt( "Watchers", 0 ) - 1 ) end
             lastCams[ ply ] = camera
             BOREAS_CAMERAS[ camera ]:SetNWInt( "Watchers", BOREAS_CAMERAS[ camera ]:GetNWInt( "Watchers", 0 ) + 1 )  
-            ply:SetViewEntity( BOREAS_CAMERAS[ camera ] ) 
             net.Start( "boreas_cameras" )
                 net.WriteBool( false )
                 net.WriteUInt( camera, 32 )
@@ -112,6 +113,8 @@ if SERVER then
 end
 
 if CLIENT then
+    local camRT = GetRenderTarget( "BoreasCameraRenderTarget", 2048, 1024 )
+
     surface.CreateFont( "CharMenuArrow", {
         font = "Roboto",
         size = ScreenScale( 36 ),
@@ -128,55 +131,37 @@ if CLIENT then
     end )
 
     local observingCamera = 0
-    local staticCam = false
-
-    hook.Add( "CalcView", "LookThroughCamera", function( ply, pos, ang, fov )
-        if observingCamera == 0 then return end
-        local v = BOREAS_CAMERAS[ observingCamera ]
-        if not IsValid( v ) or not v:GetNWBool( "Enabled" ) then
-            staticCam = true
-            return
-        end
-        staticCam = false
-        local view = {
-            origin = v:GetPos() - ( v:GetRight() * 15 ) + ( v:GetForward() * 35 ),
-            angles = v:GetAngles() + Angle( 25, 30, 0 ),
-            fov = 90,
-            drawviewer = true
-        }
-        return view
-    end )
 
     local staticOverlay = Material( "effects/tvscreen_noise001a" )
     local camOverlay = Material( "effects/combine_binocoverlay" )
 
-    hook.Add( "RenderScreenspaceEffects", "DrawTVStatic", function()
-        if staticCam and observingCamera ~= 0 then
+    hook.Add( "PostRender", "RenderToTarget", function()
+        local c = BOREAS_CAMERAS[ observingCamera ]
 
-            render.UpdateScreenEffectTexture()
+        if IsValid( c ) and c:GetNWBool( "Enabled", false ) then
 
-            staticOverlay:SetFloat( "$envmap", 0 )
-            staticOverlay:SetFloat( "$envmaptint", 0 )
-            staticOverlay:SetFloat( "$refractamount", 0 )
-            staticOverlay:SetInt( "$ignorez", 1 )
+            render.PushRenderTarget( camRT )
 
-            render.SetMaterial( staticOverlay )
-            render.DrawScreenQuad( true )
+            cam.Start2D()
+                render.RenderView( {
+                    origin = c:GetPos() - ( c:GetRight() * 35 ) + ( c:GetForward() * 15 ) - ( c:GetUp() * 7 ),
+                    angles = c:GetAngles() + Angle( 25, 30, 0 ),
+                    fov = 100
+                } )
 
-        elseif observingCamera ~= 0 then
+                surface.SetDrawColor( 255, 255, 255, 255 )
+                surface.SetMaterial( camOverlay )
+                surface.DrawTexturedRect( 0, 0, math.min( ScrW(), ScrH() ) * 2, math.min( ScrW(), ScrH() ) )
+            cam.End2D()
 
-            render.UpdateScreenEffectTexture()
+            render.PopRenderTarget()
 
-            camOverlay:SetFloat( "$envmap", 0 )
-            camOverlay:SetFloat( "$envmaptint", 0 )
-            camOverlay:SetFloat( "$refractamount", 0 )
-            camOverlay:SetInt( "$ignorez", 1 )
-
-            render.SetMaterial( camOverlay )
-            render.DrawScreenQuad( true )
-            
         end
     end )
+
+    local cameraMaterial = CreateMaterial( "boreas_camera_mat", "UnlitGeneric", {
+        [ "$basetexture" ] = camRT:GetName()
+    } )
 
     net.Receive( "boreas_cameras", function()
         local op = net.ReadBool()
@@ -187,36 +172,58 @@ if CLIENT then
             BOREAS_CAMERAS[ index ] = Entity( ent )
             observingCamera = index
 
-            local winW = ScrH() * ( 16/9 )
-            STRP_CharWindow = vgui.Create( "DFrame" )
-            STRP_CharWindow:SetPos( 5, 5 )
-            STRP_CharWindow:SetSize( math.min( winW, ScrW() ), ScrH() )
-            STRP_CharWindow:SetTitle( "" )
-            STRP_CharWindow:SetVisible( true )
-            STRP_CharWindow:SetDraggable( false )
-            STRP_CharWindow:ShowCloseButton( false )
-            STRP_CharWindow:MakePopup()
-            STRP_CharWindow:Center()
-            STRP_CharWindow:SetKeyboardInputEnabled( false )
-            STRP_CharWindow.Paint = function( self, w, h )
+            CameraWindow = vgui.Create( "DFrame" )
+            CameraWindow:SetPos( 5, 5 )
+            CameraWindow:SetSize( ScrW(), ScrH() )
+            CameraWindow:SetTitle( "" )
+            CameraWindow:SetVisible( true )
+            CameraWindow:SetDraggable( false )
+            CameraWindow:ShowCloseButton( false )
+            CameraWindow:MakePopup()
+            CameraWindow:Center()
+            CameraWindow:SetKeyboardInputEnabled( false )
+            CameraWindow.Paint = function( self, w, h )
                 surface.SetTextColor( 0, 0, 0, 255 )
+
+                local x, y = self:GetPos()
+
+                local c = BOREAS_CAMERAS[ observingCamera ]
+                
+                if IsValid( c ) and c:GetNWBool( "Enabled", false ) then
+                    local wid = math.min( ScrW(), ScrH() )
+
+                    surface.SetDrawColor( 0, 0, 0, 255 )
+                    surface.DrawRect( 0, 0, ScrW(), ScrH() )
+
+                    surface.SetDrawColor( 255, 255, 255, 255 )
+                    surface.SetMaterial( cameraMaterial )
+                    surface.DrawTexturedRect( w / 2 - wid, y, wid * 2, wid )
+
+                    surface.SetDrawColor( 255, 255, 255, 255 )
+                    surface.SetMaterial( camOverlay )
+                    surface.DrawTexturedRect( w / 2 - wid, y, wid * 2, wid )
+                else
+                    surface.SetDrawColor( 255, 255, 255, 255 )
+                    surface.SetMaterial( staticOverlay )
+                    surface.DrawTexturedRect( x, y, w, h )
+                end
             end
-            function STRP_CharWindow:Think()
+            function CameraWindow:Think()
                 if not LocalPlayer():Alive() then
                     observingCamera = 0
                     net.Start( "boreas_cameras" )
                         net.WriteInt( -1, 32 )
                     net.SendToServer()
-                    STRP_CharWindow:Close()
+                    CameraWindow:Close()
                 end
             end
 
-            local ModelLeftButton = vgui.Create( "DButton", STRP_CharWindow )
-            ModelLeftButton:SetPos( 0, ScrH() / 3 )
-            ModelLeftButton:SetSize( math.min( winW, ScrW() ) * 0.05, ScrH() / 3 )
-            ModelLeftButton:SetFont( "CharMenuArrow" )
-            ModelLeftButton:SetText( "◀" )
-            function ModelLeftButton:DoClick()
+            local CamPrevButton = vgui.Create( "DButton", CameraWindow )
+            CamPrevButton:SetPos( 0, ScrH() / 3 )
+            CamPrevButton:SetSize( ScrW() * 0.05, ScrH() / 3 )
+            CamPrevButton:SetFont( "CharMenuArrow" )
+            CamPrevButton:SetText( "◀" )
+            function CamPrevButton:DoClick()
                 observingCamera = observingCamera - 1
                 --if observingCamera <= 0 then
                 --    observingCamera = #BOREAS_CAMERAS
@@ -227,12 +234,12 @@ if CLIENT then
                 net.SendToServer()
             end
 
-            local ModelRightButton = vgui.Create( "DButton", STRP_CharWindow )
-            ModelRightButton:SetPos( math.min( winW, ScrW() ) - math.min( winW, ScrW() ) * 0.05, ScrH() / 3 )
-            ModelRightButton:SetSize( math.min( winW, ScrW() ) * 0.05, ScrH() / 3 )
-            ModelRightButton:SetFont( "CharMenuArrow" )
-            ModelRightButton:SetText( "▶" )
-            function ModelRightButton:DoClick()
+            local CamNextButton = vgui.Create( "DButton", CameraWindow )
+            CamNextButton:SetPos( ScrW() - ScrW() * 0.05, ScrH() / 3 )
+            CamNextButton:SetSize( ScrW() * 0.05, ScrH() / 3 )
+            CamNextButton:SetFont( "CharMenuArrow" )
+            CamNextButton:SetText( "▶" )
+            function CamNextButton:DoClick()
                 observingCamera = observingCamera + 1
                 --if observingCamera > #BOREAS_CAMERAS then
                 --    observingCamera = 1
@@ -243,18 +250,18 @@ if CLIENT then
                 net.SendToServer()
             end
 
-            local ConfirmButton = vgui.Create( "DButton", STRP_CharWindow )
-            ConfirmButton:SetPos( math.min( winW, ScrW() ) / 2.66, ScrH() - ScrH() * 0.1 )
-            ConfirmButton:SetSize( math.min( winW, ScrW() ) / 4, ScrH() * 0.1 )
-            ConfirmButton:SetFont( "CharMenuArrowSm" )
-            ConfirmButton:SetTextColor( color_black )
-            ConfirmButton:SetText( "Exit" )
-            function ConfirmButton:DoClick()
+            local ExitButton = vgui.Create( "DButton", CameraWindow )
+            ExitButton:SetPos( ScrW() / 2.66, ScrH() - ScrH() * 0.1 )
+            ExitButton:SetSize( ScrW() / 4, ScrH() * 0.1 )
+            ExitButton:SetFont( "CharMenuArrowSm" )
+            ExitButton:SetTextColor( color_black )
+            ExitButton:SetText( "Exit" )
+            function ExitButton:DoClick()
                 observingCamera = 0
                 net.Start( "boreas_cameras" )
                     net.WriteInt( -1, 32 )
                 net.SendToServer()
-                STRP_CharWindow:Close()
+                CameraWindow:Close()
             end
         else
             local index = net.ReadUInt( 32 )

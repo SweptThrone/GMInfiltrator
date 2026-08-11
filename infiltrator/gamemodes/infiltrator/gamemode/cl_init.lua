@@ -66,3 +66,13 @@ hook.Add( "InitPostEntity", "Infil.RequestLoadout", function()
         net.SendToServer()
     end
 end )
+
+hook.Add( "PlayerFootstep", "Infil.HeavyFootsteps", function( ply )
+    if player_manager.GetPlayerClass( ply ) == "guard_heavy" then
+        if LocalPlayer() ~= ply then
+            ply:EmitSound( "npc/combine_soldier/gear" .. math.random( 1, 6 ) .. ".wav" )
+        else
+            ply:EmitSound( "npc/combine_soldier/gear" .. math.random( 1, 6 ) .. ".wav", 80, 100, 0.25 )
+        end
+    end
+end )
