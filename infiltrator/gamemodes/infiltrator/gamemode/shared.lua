@@ -11,6 +11,10 @@ function GM:Initialize()
 	team.SetUp( TEAM_GUARD, "Guards", Color( 0, 0, 255 ) )
 end
 
+function GM:PlayerNoClip( ply, des )
+    if ply:Team() == TEAM_SPECTATOR and not des then return false end
+end
+
 local function FixPropRenders()
 	for k,v in pairs( ents.FindByClass( "prop_*" ) ) do
 		v:SetRenderMode( 0 )
