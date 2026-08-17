@@ -97,6 +97,7 @@ net.Receive( "Infil.AskForLoadout", function( len, ply )
 	if GetRoundState() == ROUND.PREPARING and ply ~= NextRoundInfil then
 		net.Start( "Infil.Loadout" )
 			net.WriteBool( false )
+        	net.WriteBool( true )
 		net.Send( ply )
 		table.insert( NextRoundGuards, ply )
 	end
@@ -224,10 +225,12 @@ function RollTeams()
 
 	net.Start( "Infil.Loadout" )
 		net.WriteBool( true )
+        net.WriteBool( true )
 	net.Send( NextRoundInfil )
 	
 	net.Start( "Infil.Loadout" )
 		net.WriteBool( false )
+        net.WriteBool( true )
 	net.Send( NextRoundGuards )
 end
 
@@ -372,6 +375,8 @@ function GM:Think()
 end
 
 function GM:PlayerSpawn( ply )
+	ply:SetNWInt( "Freezing", 0 )
+	
 	if not ply.Active then
 		GAMEMODE:PlayerSpawnAsSpectator( ply )
 	else
@@ -388,8 +393,6 @@ function GM:PlayerSpawn( ply )
 		player_manager.RunClass( ply, "Spawn" )
 		player_manager.RunClass( ply, "Loadout" )
 		player_manager.RunClass( ply, "SetModel" )
-
-		ply:SetNWInt( "Freezing", 0 )
 
 		ply:SetupHands()
 	end

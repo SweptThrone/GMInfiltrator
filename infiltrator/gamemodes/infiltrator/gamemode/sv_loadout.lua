@@ -17,6 +17,7 @@ hook.Add( "ShowSpare1", "Infil.LoadoutMenu", function( ply )
 
     net.Start( "Infil.Loadout" )
         net.WriteBool( ply == NextRoundInfil )
+        net.WriteBool( false )
     net.Send( ply )
 end )
 

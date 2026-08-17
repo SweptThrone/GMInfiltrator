@@ -39,11 +39,14 @@ local LoadoutWindow
 
 net.Receive( "Infil.Loadout", function()
     local isInfil = net.ReadBool()
+    local isFirst = net.ReadBool()
 
-    if isInfil then
-        surface.PlaySound( "mus/prep_infil.wav" )
-    else
-        surface.PlaySound( "mus/prep_guard.wav" )
+    if isFirst then
+        if isInfil then
+            surface.PlaySound( "mus/prep_infil.wav" )
+        else
+            surface.PlaySound( "mus/prep_guard.wav" )
+        end
     end
 
     if IsValid( LoadoutWindow ) then
