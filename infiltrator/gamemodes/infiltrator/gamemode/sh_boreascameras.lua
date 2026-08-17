@@ -190,18 +190,21 @@ if CLIENT then
                 local c = BOREAS_CAMERAS[ observingCamera ]
                 
                 if IsValid( c ) and c:GetNWBool( "Enabled", false ) then
-                    local wid = math.min( ScrW(), ScrH() )
+                    local wid, hit
+                    if ScrW() / ScrH() >= 2 then
+                        hit = ScrH()
+                        wid = ScrH() * 2
+                    else
+                        hit = ScrW() / 2
+                        wid = ScrW()
+                    end
 
                     surface.SetDrawColor( 0, 0, 0, 255 )
                     surface.DrawRect( 0, 0, ScrW(), ScrH() )
 
                     surface.SetDrawColor( 255, 255, 255, 255 )
                     surface.SetMaterial( cameraMaterial )
-                    surface.DrawTexturedRect( w / 2 - wid, y, wid * 2, wid )
-
-                    surface.SetDrawColor( 255, 255, 255, 255 )
-                    surface.SetMaterial( camOverlay )
-                    surface.DrawTexturedRect( w / 2 - wid, y, wid * 2, wid )
+                    surface.DrawTexturedRect( w / 2 - wid / 2, h / 2 - hit / 2, wid, hit )
                 else
                     surface.SetDrawColor( 255, 255, 255, 255 )
                     surface.SetMaterial( staticOverlay )

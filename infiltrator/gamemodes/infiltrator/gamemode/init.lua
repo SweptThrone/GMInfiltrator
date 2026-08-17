@@ -263,7 +263,7 @@ end )
 function GM:PlayerDeath( vic )
 	vic.NextSpawnTime = CurTime() + 30
 	if vic:Team() == TEAM_GUARD then
-		vic.NextSpawnTime = math.max( 30, team.NumPlayers( TEAM_GUARD ) * 10 )
+		vic.NextSpawnTime = CurTime() + math.max( 30, team.NumPlayers( TEAM_GUARD ) * 10 )
 	end
 
 	vic:SetNWInt( "Freezing", 0 )

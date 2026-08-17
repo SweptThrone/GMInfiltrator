@@ -31,6 +31,7 @@ function PLAYER:Spawn()
     self.Player:SetCrouchedWalkSpeed( self.CrouchedWalkSpeed )
     self.Player:SetJumpPower( self.JumpPower )
     self.Player:SetSlowWalkSpeed( self.SlowWalkSpeed )
+	self.Player:SetPlayerColor( Vector( self.Player:GetInfo( "cl_playercolor" ) ) )
 end
 
 function PLAYER:Loadout()
