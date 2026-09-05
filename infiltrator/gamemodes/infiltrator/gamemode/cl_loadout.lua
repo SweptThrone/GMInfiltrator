@@ -127,8 +127,17 @@ net.Receive( "Infil.Loadout", function()
         local TabMenu = vgui.Create( "DPropertySheet", LoadoutWindow )
         TabMenu:Dock( FILL )
 
+        local classStr = { "Assault", "Medic", "Officer", "Marksman", "Heavy" }
+
         SendLoadout = function()
             local p = TabMenu:GetActiveTab():GetPanel()
+
+            chat.AddText( color_white, "YOUR LOADOUT:" )
+            chat.AddText( color_white, "Class: ", Color( 0, 0, 255 ), classStr[ p.plyClass ] )
+            local primaryWeapon = p.PrimBox:GetSelected()
+            chat.AddText( color_white, "Primary: ", Color( 0, 0, 255 ), primaryWeapon )
+            local secondaryWeapon = p.SecBox:GetSelected()
+            chat.AddText( color_white, "Secondary: ", Color( 0, 0, 255 ), secondaryWeapon )
 
             net.Start( "Infil.Loadout" )
                 net.WriteUInt( p.plyClass, 3 )
@@ -388,7 +397,7 @@ net.Receive( "Infil.Loadout", function()
         local PrimBox = vgui.Create( "DComboBox", LoadoutWindow )
         PrimBox:SetPos( 110, 30 )
         PrimBox:SetSize( 350, 20 )
-        for i = 15, 17 do
+        for i = INFILTRATOR.Classes.Weapons[ 6 ].min, INFILTRATOR.Classes.Weapons[ 6 ].max do
             PrimBox:AddChoice( weapons.Get( "infil_" .. INFILTRATOR.Primaries[ i ] ).PrintName, i )
         end
         PrimBox:ChooseOptionID( 1 )
@@ -447,6 +456,16 @@ net.Receive( "Infil.Loadout", function()
         LocBox:ChooseOptionID( 1 )
         
         SendLoadout = function()
+            chat.AddText( color_white, "YOUR LOADOUT:" )
+            local primaryWep = PrimBox:GetSelected()
+            chat.AddText( color_white, "Primary: ", Color( 255, 0, 0 ), primaryWep )
+            local secondaryWep = SecBox:GetSelected()
+            chat.AddText( color_white, "Secondary: ", Color( 255, 0, 0 ), secondaryWep )
+            local selectedPerk = PerkBox:GetSelected()
+            chat.AddText( color_white, "Perk: ", Color( 255, 0, 0 ), selectedPerk )
+            local selectedLocation = LocBox:GetSelected()
+            chat.AddText( color_white, "Infiltration: ", Color( 255, 0, 0 ), selectedLocation )
+
             net.Start( "Infil.Loadout" )
                 net.WriteUInt( PrimBox:GetOptionData( PrimBox:GetSelectedID() ), 5 )
                 net.WriteUInt( SecBox:GetOptionData( SecBox:GetSelectedID() ), 3 )

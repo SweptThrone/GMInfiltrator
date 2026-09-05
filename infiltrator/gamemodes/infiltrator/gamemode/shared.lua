@@ -6,6 +6,14 @@ GM.Website = "sweptthr.one"
 TEAM_INFIL = 1
 TEAM_GUARD = 2
 
+INFIL_DEBUG = false
+
+function infilPrint( ... )
+    if INFIL_DEBUG then
+        print( ... )
+    end
+end
+
 function GM:Initialize()
     team.SetUp( TEAM_INFIL, "Infiltrators", Color( 255, 0, 0 ) )
 	team.SetUp( TEAM_GUARD, "Guards", Color( 0, 0, 255 ) )
@@ -62,8 +70,10 @@ function SetStateTime( time )
     game.GetWorld():SetNWInt( "StateTime", time )
 end
 function NextState()
-    if player.GetCount() < 2 then
+    if #GetPlayersWhoCanPlay() < 2 then
+        InfilMsg( "There are not enough eligible players to play." )
         SetRoundState( ROUND.NOPLAYERS )
+        SetStateTime( 0 )
         return
     end
 
@@ -103,6 +113,7 @@ INFILTRATOR = {
         "ak47",
         "tmp",
         "scouts",
+        "m4a1"
     },
     Secondaries = {
         "fiveseven",
@@ -133,7 +144,7 @@ INFILTRATOR = {
 			{ min = 4, max = 7 },
 			{ min = 8, max = 11 },
 			{ min = 12, max = 14 },
-            { min = 15, max = 17 }
+            { min = 15, max = 18 }
 		}
 	},
     Infiltrations = {

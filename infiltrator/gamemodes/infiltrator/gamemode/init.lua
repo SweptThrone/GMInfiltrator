@@ -46,7 +46,7 @@ AddCSLuaFile( "player_class/guard_medic.lua" )
 AddCSLuaFile( "player_class/guard_officer.lua" )
 AddCSLuaFile( "player_class/infil_infil.lua" )
 
-print( "Initializing..." )
+infilPrint( "Initializing..." )
 
 util.AddNetworkString( "Infil.Music" )
 
@@ -99,7 +99,36 @@ net.Receive( "Infil.AskForLoadout", function( len, ply )
 			net.WriteBool( false )
         	net.WriteBool( true )
 		net.Send( ply )
-		table.insert( NextRoundGuards, ply )
+		NextRoundGuards[ ply ] = true
+	end
+end )
+
+util.AddNetworkString( "Infil.ReSpectate" )
+net.Receive( "Infil.ReSpectate", function( len, ply )
+	if GetRoundState() == ROUND.PREPARING and NextRoundGuards[ ply ] then
+		NextRoundGuards[ ply ] = nil
+	end
+	if ply == NextRoundInfil then
+		NextRoundInfil = NULL
+
+		local getInstantaneousPlayersWhoCanPlay = GetPlayersWhoCanPlay()
+		for k, pl in pairs( getInstantaneousPlayersWhoCanPlay ) do
+			if pl == ply then
+				getInstantaneousPlayersWhoCanPlay[ k ] = nil
+			end
+		end
+
+		if #getInstantaneousPlayersWhoCanPlay > 1 then
+			InfilMsg( "The infiltrator started spectating, re-rolling..." )
+			SetStateTime( CurTime() + GetConVar( "sv_infil_preptime_sec" ):GetInt() )		
+			nextRoundTimeCached = GetStateTime()
+
+			RollTeams()
+		else
+			InfilMsg( "The infiltrator started spectating.  There are not enough eligible players." )
+        	SetRoundState( ROUND.NOPLAYERS )
+		end
+
 	end
 end )
 
@@ -121,6 +150,7 @@ end
 function GM:PlayerInitialSpawn( ply )
 	local col = ply:GetInfo( "cl_playercolor" )
 	ply:SetPlayerColor( Vector( col ) )
+	ply:SetNWVector( "TruePlayerColor", Vector( col ) )
 	GAMEMODE:PlayerSpawnAsSpectator( ply )
 end
 
@@ -148,73 +178,78 @@ local hasSentLoadout = false
 
 function GetPlayersSortedByTime()
 	local plys = player.GetAll()
-	table.sort( plys, function( a, b ) return a:TimeConnected() > b:TimeConnected() end )
-	return plys
+	local sortedPlys = {}
+	for _, ply in pairs( plys ) do
+		sortedPlys[ ply ] = ply:TimeConnected()
+	end
+	table.sort( sortedPlys, function( a, b ) return a > b end )
+	return sortedPlys
 end
 
 function GetPlayersWhoCanPlay()
 	local plys = {}
 	local sortedPlys = GetPlayersSortedByTime()
-	local removeMe = {}
-	for _, ply in pairs( sortedPlys ) do
-		if ply:GetInfoNum( "cl_infil_spectateonly", 0 ) == 1 then
-			table.insert( removeMe, ply )
+	local i = 1
+	for ply, time in pairs( sortedPlys ) do
+		if ply:GetInfoNum( "cl_infil_spectateonly", 0 ) == 0 and i <= #GUARD_SPAWNS then
+			table.insert( plys, ply )
+			i = i + 1
 		end
-	end
-	for _, ply in pairs( removeMe ) do
-		table.RemoveByValue( sortedPlys, ply )
-	end
-	for i = 1, #GUARD_SPAWNS + 1 do
-		table.insert( plys, sortedPlys[ i ] )
 	end
 	return plys
 end
 
 function GetPlayersInQueue()
-	local plys = GetPlayersSortedByTime()
-	local removeMe = {}
-	for _, ply in pairs( plys ) do
-		if ply:GetInfoNum( "cl_infil_spectateonly", 0 ) == 1 then
-			table.insert( removeMe, ply )
+	local plys = {}
+	local sortedPlys = GetPlayersWhoCanPlay()
+	local i = 1
+	for _, ply in pairs( sortedPlys ) do
+		if ply:GetInfoNum( "cl_infil_spectateonly", 0 ) == 0 and i > #GUARD_SPAWNS then
+			table.insert( plys, ply )
 		end
-	end
-	for _, ply in pairs( removeMe ) do
-		table.RemoveByValue( sortedPlys, ply )
-	end
-	for i = 1, #GUARD_SPAWNS + 1 do
-		table.remove( plys, 1 )
+		i = i + 1
 	end
 	return plys
 end
 
 function RollTeams()
-	local valid_infiltrators = GetPlayersWhoCanPlay()
-	if IsValid( LAST_INFILTRATOR ) then
-		table.RemoveByValue( valid_infiltrators, LAST_INFILTRATOR )
+	-- all players who are not spectate-only
+	local valid_infiltrators = {}
+	for _, ply in pairs( GetPlayersWhoCanPlay() ) do
+		valid_infiltrators[ ply ] = true
 	end
-	local removeMe = {}
-	for k,v in pairs( valid_infiltrators ) do
-		if v:GetInfoNum( "cl_infil_avoidinfil", 0 ) == 1 then
-			table.insert( removeMe, v )
+	-- prevent last round's infiltrator from being it again
+	if IsValid( LAST_INFILTRATOR ) then
+		valid_infiltrators[ LAST_INFILTRATOR ] = nil
+	end
+	-- remove all players who do not want to be the infiltrator
+	for ply, _ in pairs( valid_infiltrators ) do
+		if ply:GetInfoNum( "cl_infil_avoidinfil", 0 ) == 1 then
+			valid_infiltrators[ ply ] = nil
 		end
 	end
-	for _, ply in pairs( removeMe ) do
-		table.RemoveByValue( valid_infiltrators, ply )
+
+	-- if no one wants to be infiltrator except the previous infiltrator, let them be it again
+	if table.IsEmpty( valid_infiltrators ) and IsValid( LAST_INFILTRATOR ) and LAST_INFILTRATOR:GetInfoNum( "cl_infil_avoidinfil", 0 ) ~= 1 then
+		valid_infiltrators[ LAST_INFILTRATOR ] = true
 	end
 
-	if table.IsEmpty( valid_infiltrators ) then -- no one wants to be infiltrator!
-		valid_infiltrators = GetPlayersWhoCanPlay()
+	-- if absolutely no one wants to be infiltrator, we have to just pick from everyone
+	if table.IsEmpty( valid_infiltrators ) then
+		for _, ply in pairs( GetPlayersWhoCanPlay() ) do
+			valid_infiltrators[ ply ] = true
+		end
 	end
 
-	NextRoundInfil = table.Random( valid_infiltrators )
+	_, NextRoundInfil = table.Random( valid_infiltrators )
 	NextRoundInfil:InfilMsg( "You are the infiltrator!" )
 	LAST_INFILTRATOR = NextRoundInfil
-	print( "Next round infil @ 154", NextRoundInfil )
+	infilPrint( "Next round infil @ 154", NextRoundInfil )
 
 	NextRoundGuards = {}
 	for k,v in pairs( GetPlayersWhoCanPlay() ) do
 		if v ~= NextRoundInfil then
-			table.insert( NextRoundGuards, v )
+			NextRoundGuards[ v ] = true
 			v:InfilMsg( "You are a guard." )
 		end
 	end
@@ -228,20 +263,33 @@ function RollTeams()
         net.WriteBool( true )
 	net.Send( NextRoundInfil )
 	
+	local guardsRF = RecipientFilter()
+	for ply, b in pairs( NextRoundGuards ) do
+		if b then
+			guardsRF:AddPlayer( ply )
+		end
+	end
+
 	net.Start( "Infil.Loadout" )
 		net.WriteBool( false )
         net.WriteBool( true )
-	net.Send( NextRoundGuards )
+	net.Send( guardsRF )
 end
 
 hook.Add( "PlayerDisconnected", "CheckForInfilLeaving", function( ply )
 	if ply == NextRoundInfil and GetRoundState() == ROUND.PREPARING then
 		NextRoundInfil = NULL
-		InfilMsg( "The infiltrator left the server, re-rolling..." )
-		SetStateTime( CurTime() + GetConVar( "sv_infil_preptime_sec" ):GetInt() )		
-		nextRoundTimeCached = GetStateTime()
 
-		RollTeams()
+		if #GetPlayersWhoCanPlay() > 1 then
+			InfilMsg( "The infiltrator left the server, re-rolling..." )
+			SetStateTime( CurTime() + GetConVar( "sv_infil_preptime_sec" ):GetInt() )		
+			nextRoundTimeCached = GetStateTime()
+
+			RollTeams()
+		else
+			InfilMsg( "The infiltrator left the server.  There are not enough eligible players." )
+        	SetRoundState( ROUND.NOPLAYERS )
+		end
 	end
 
 	if ply:Team() == TEAM_INFIL and GetRoundState() == ROUND.ACTIVE then
@@ -292,8 +340,8 @@ function GM:Think()
 	end
 
 	if GetRoundState() == ROUND.NOPLAYERS then
-		if player.GetCount() > 1 and not hasSentLoadout then
-			print( "Proceeding to next due to no players..." )
+		if #GetPlayersWhoCanPlay() > 1 and not hasSentLoadout then
+			infilPrint( "Proceeding to next due to no players..." )
 			hasSentLoadout = true
 			NextState()
 			nextRoundTimeCached = GetStateTime()
@@ -304,6 +352,11 @@ function GM:Think()
 				v.Active = false
 				GAMEMODE:PlayerSpawnAsSpectator( v )
 				v:Spawn()
+				if v:GetInfoNum( "cl_infil_spectateonly", 0 ) == 1 then
+					v:InfilMsg( "You are set to spectate only.  Hit F2 to change this." )
+				elseif v:GetInfoNum( "cl_infil_avoidinfil", 0 ) == 1 then
+					v:InfilMsg( "You are set to never be the infiltrator.  Hit F2 to change this." )
+				end
 			end
 
 			game.CleanUpMap()
@@ -312,7 +365,7 @@ function GM:Think()
 		end
 	elseif CurTime() >= nextRoundTimeCached then
 		hasSentLoadout = false
-		print( "Proceeding to next due to time expiring..." )
+		infilPrint( "Proceeding to next due to time expiring..." )
 		NextState()
 		nextRoundTimeCached = GetStateTime()
 
@@ -325,7 +378,7 @@ function GM:Think()
 				v:Spawn()
 			end
 
-			print( "We are now preparing..." )
+			infilPrint( "We are now preparing..." )
 			game.CleanUpMap()
 
 			RollTeams()
@@ -335,26 +388,26 @@ function GM:Think()
 				G_MUTE = false
 			end )
 
-			print( "Game is now active" )
+			infilPrint( "Game is now active" )
 
 			local i = 1
-			for k,v in pairs( NextRoundGuards ) do
-				if IsValid( v ) then
-					v.Active = true
-					player_manager.SetPlayerClass( v, INFILTRATOR.Classes[ v.InfilLoadout[ TEAM_GUARD ][ 1 ] ] )
-					v:Spawn()
-					v:UnSpectate()
-					v:SetObserverMode( OBS_MODE_NONE )
-					v:SetNoDraw( false )
-					v:SetMoveType( MOVETYPE_WALK )
-					GAMEMODE:PlayerJoinTeam( v, TEAM_GUARD )
-					v:SetPos( GUARD_SPAWNS[ i ].pos )
-					v:SetAngles( GUARD_SPAWNS[ i ].ang )
+			for ply, b in pairs( NextRoundGuards ) do
+				if IsValid( ply ) and b then
+					ply.Active = true
+					player_manager.SetPlayerClass( ply, INFILTRATOR.Classes[ ply.InfilLoadout[ TEAM_GUARD ][ 1 ] ] )
+					ply:Spawn()
+					ply:UnSpectate()
+					ply:SetObserverMode( OBS_MODE_NONE )
+					ply:SetNoDraw( false )
+					ply:SetMoveType( MOVETYPE_WALK )
+					GAMEMODE:PlayerJoinTeam( ply, TEAM_GUARD )
+					ply:SetPos( GUARD_SPAWNS[ i ].pos )
+					ply:SetAngles( GUARD_SPAWNS[ i ].ang )
 					i = i + 1
 				end
 			end
 			NextRoundInfil.Active = true
-			print( "Next round infil @ 262", NextRoundInfil )
+			infilPrint( "Next round infil @ 262", NextRoundInfil )
 			player_manager.SetPlayerClass( NextRoundInfil, "infil_infil" )
 			NextRoundInfil:Spawn()
 			NextRoundInfil:UnSpectate()

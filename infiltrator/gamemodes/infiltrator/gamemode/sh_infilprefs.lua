@@ -105,6 +105,15 @@ if CLIENT then
         SpectateCheck:SetChecked( GetConVar( "cl_infil_spectateonly" ):GetBool() )
         SpectateCheck:SetConVar( "cl_infil_spectateonly" )
         SpectateCheck:SetText( "ONLY spectate, you will NEVER spawn" )
+        function SpectateCheck:OnChange( val )
+            if not val and GetRoundState() == ROUND.PREPARING then
+                net.Start( "Infil.AskForLoadout" )
+                net.SendToServer()
+            elseif val and GetRoundState() == ROUND.PREPARING then
+                net.Start( "Infil.ReSpectate" )
+                net.SendToServer()
+            end
+        end
 
     end )
 end

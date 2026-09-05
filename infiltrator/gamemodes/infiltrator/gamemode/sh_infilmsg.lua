@@ -40,6 +40,8 @@ if CLIENT then
 
             if CurTime() > callTime + 7 then hook.Remove( "HUDPaint", "Infil.InfilMsg" ) end
         end )
+
+        infilPrint( "[INFIL] " .. txt:upper() )
     end
 
     net.Receive( "Infil.Msg", function()

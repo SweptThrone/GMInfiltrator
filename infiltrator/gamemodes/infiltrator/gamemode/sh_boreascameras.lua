@@ -206,6 +206,9 @@ if CLIENT then
                     surface.SetMaterial( cameraMaterial )
                     surface.DrawTexturedRect( w / 2 - wid / 2, h / 2 - hit / 2, wid, hit )
                 else
+                    surface.SetDrawColor( 0, 0, 0, 255 )
+                    surface.DrawRect( 0, 0, ScrW(), ScrH() )
+
                     surface.SetDrawColor( 255, 255, 255, 255 )
                     surface.SetMaterial( staticOverlay )
                     surface.DrawTexturedRect( x, y, w, h )

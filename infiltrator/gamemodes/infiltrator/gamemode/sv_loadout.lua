@@ -22,7 +22,7 @@ hook.Add( "ShowSpare1", "Infil.LoadoutMenu", function( ply )
 end )
 
 net.Receive( "Infil.Loadout", function( _, ply )
-    if table.HasValue( NextRoundGuards, ply ) then
+    if NextRoundGuards[ ply ] then
         local plyClass = net.ReadUInt( 3 )
         local prim = net.ReadUInt( 5 )
         local sec = net.ReadUInt( 3 )

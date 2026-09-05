@@ -21,7 +21,7 @@ local hgLut = {
 hook.Add( "ScalePlayerDamage", "IncreaseLimbDamage", function( ply, hitgroup, dmg )
     if dmg:GetInflictor():IsWeapon() and ( dmg:GetInflictor():GetPrimaryAmmoType() == 7 or dmg:GetInflictor():GetPrimaryAmmoType() == 15 ) then
         dmg:ScaleDamage( shotgunDamage[ hitgroup ] )
-        --if SERVER then print( dmg:GetDamage() .. "damage at the " .. hgLut[ hitgroup ] .. " " .. shotgunDamage[ hitgroup ] .. "x" ) end
+        --if SERVER then infilPrint( dmg:GetDamage() .. "damage at the " .. hgLut[ hitgroup ] .. " " .. shotgunDamage[ hitgroup ] .. "x" ) end
     else
         if hitgroup == HITGROUP_LEFTARM or hitgroup == HITGROUP_RIGHTARM then
             dmg:ScaleDamage( 4 * ( 0.9 / 1.3 ) ) -- scale the default 0.25x up to 1x, then scale it based on Hunt values

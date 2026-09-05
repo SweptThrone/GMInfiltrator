@@ -230,35 +230,35 @@ end
 
 function DebugVoiceIssue( listener, speaker )
 	if G_MUTE then
-		print( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because of G_MUTE" )
+		infilPrint( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because of G_MUTE" )
 		return
 	end
 	if GetRoundState() == ROUND.PREPARING or GetRoundState() == ROUND.ENDING then
-		print( listener:Name() .. " CAN hear " .. speaker:Name() .. " because of round state" )
+		infilPrint( listener:Name() .. " CAN hear " .. speaker:Name() .. " because of round state" )
 		return
 	end
 	if listener:Team() == TEAM_SPECTATOR then 
-		print( listener:Name() .. " CAN hear " .. speaker:Name() .. " because " .. listener:Name() .. " is a spectator" )
+		infilPrint( listener:Name() .. " CAN hear " .. speaker:Name() .. " because " .. listener:Name() .. " is a spectator" )
 		return
 	end
 	if speaker:Team() == TEAM_SPECTATOR then 
-		print( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because " .. speaker:Name() .. " is a spectator" )
+		infilPrint( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because " .. speaker:Name() .. " is a spectator" )
 		return
 	end
 	if not speaker:Alive() then
-		print( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because " .. speaker:Name() .. " is dead" )
+		infilPrint( listener:Name() .. " can NOT hear " .. speaker:Name() .. " because " .. speaker:Name() .. " is dead" )
 		return
 	end
 	if listener:Team() == speaker:Team() then
-		print( listener:Name() .. " CAN hear " .. speaker:Name() .. " because they are on the same team" )
+		infilPrint( listener:Name() .. " CAN hear " .. speaker:Name() .. " because they are on the same team" )
 		return
 	end
 	if listener:Team() == TEAM_INFIL and BOREAS_OBJECTIVES[ "jammer" ] then
-		print( listener:Name() .. " CAN hear " .. speaker:Name() .. " because the jammer is in place" )
+		infilPrint( listener:Name() .. " CAN hear " .. speaker:Name() .. " because the jammer is in place" )
 		return
 	end
 	
-	print( listener:Name() .. " CAN hear " .. speaker:Name() .. " IN 3D" )
+	infilPrint( listener:Name() .. " CAN hear " .. speaker:Name() .. " IN 3D" )
 	return
 end
 

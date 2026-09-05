@@ -10,11 +10,11 @@ hook.Add( "PlayerTick", "PrintActiveSS", function( ply )
         if not IsValid( ply:GetSoundscapeEntity() ) then return end
 
         if string.find( ply:GetSoundscapeEntity():GetSaveTable().m_soundscapeName, "exterior" ) then
-            --print( "COLD" )
+            --infilPrint( "COLD" )
             ply:SetNWInt( "Freezing", math.Clamp( ply:GetNWInt( "Freezing", 0 ) + 5, 0, 255 ) )
             ply.NextFreezeCheck = CurTime() + 6
         else
-            --print( "WARM" )
+            --infilPrint( "WARM" )
             ply:SetNWInt( "Freezing", math.Clamp( ply:GetNWInt( "Freezing", 0 ) - 5, 0, 255 ) )
             ply.NextFreezeCheck = CurTime() + 1
         end
