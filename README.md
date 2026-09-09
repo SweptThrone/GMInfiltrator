@@ -1,6 +1,7 @@
 # Infiltrator Gamemode
 GitHub release of the Infiltrator gamemode.  
-As seen as STAGE 3 of STAG Servers during September 2025.
+As seen as STAGE 3 of STAG Servers during September 2025.  
+Also on my server at trio.sweptthr.one:27017
 
 ## Summary
 Infiltrator is a hardcore asymmetric stealth gamemode that pits a single sneaky  
